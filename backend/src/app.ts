@@ -1,17 +1,19 @@
-import express, { Request, Response } from "express";
-import cors from 'cors';
+import express from "express";
+import cors from "cors";
+import roomRoutes from "./routes/room.routes.js";
 
 const app = express();
 
-app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(express.json());
 
-app.get("/api/health", (req: Request, res: Response) => {
+app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Jam API is running"
+    message: "Jam API is running",
   });
 });
+
+app.use("/api/rooms", roomRoutes);
 
 export default app;
