@@ -18,6 +18,12 @@ const io = new Server(httpServer, {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  socket.on("message", (message) => {
+    console.log("Message received:", message);
+  });
+
+  socket.emit("welcome", "Welcome to Jam! 🎵");
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
