@@ -9,14 +9,20 @@ function App() {
       console.log("Connected:", socket.id);
 
       socket.emit("message", "Hello from Jam!");
+    });
 
-      socket.on("welcome", (message) => {
-        console.log(message);
-      });
+    socket.on("welcome", (message) => {
+      console.log(message);
+    });
+
+    socket.on("message", (message) => {
+      console.log("Broadcast received:", message);
     });
 
     return () => {
       socket.off("connect");
+      socket.off("welcome");
+      socket.off("message");
     };
   }, []);
 
