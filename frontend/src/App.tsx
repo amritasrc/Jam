@@ -8,25 +8,32 @@ function App() {
     socket.on("connect", () => {
       console.log("Connected:", socket.id);
 
-      socket.emit("message", "Hello from Jam!");
+      socket.emit("join-room", "room-A");
     });
 
-    socket.on("welcome", (message) => {
-      console.log(message);
-    });
-
-    socket.on("message", (message) => {
-      console.log("Broadcast received:", message);
+    socket.on("room-message", (message: string) => {
+      console.log("Room message:", message);
     });
 
     return () => {
       socket.off("connect");
-      socket.off("welcome");
-      socket.off("message");
+      socket.off("room-message");
     };
   }, []);
 
-  return <h1>Jam</h1>;
+  const sendMessage = () => {
+    socket.emit("room-message", {
+      roomId: "room-A",
+      message: "Hello from room A!",
+    });
+  };
+
+  return (
+    <div>
+      <h1>Jam</h1>
+      <button onClick={sendMessage}>Send Room Message</button>
+    </div>
+  );
 }
 
 export default App;
