@@ -8,7 +8,9 @@ function App() {
     socket.on("connect", () => {
       console.log("Connected:", socket.id);
 
-      socket.emit("join-room", "room-A");
+      socket.emit("create-room", (roomId: string) => {
+        console.log("Created room:", roomId);
+      });
     });
 
     socket.on("room-message", (message: string) => {

@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import { createServer } from "http";
 import app from "./app.js";
 import { Server } from "socket.io";
+import { nanoid } from "nanoid";
 
 dotenv.config();
 
@@ -17,6 +18,16 @@ const io = new Server(httpServer, {
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+  socket.on("create-room", (callback) => {
+    const roomId = nanoid(8);
+
+    socket.join(roomId);
+
+    callback(roomId);
+
+    console.log(`Room created: ${roomId}`);
+  }); 
 
   socket.on("join-room", (roomId) => {
     socket.join(roomId);
