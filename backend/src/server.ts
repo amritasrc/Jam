@@ -16,21 +16,32 @@ const io = new Server(httpServer, {
   },
 });
 
+const rooms = new Set<string>();
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
   socket.on("create-room", (callback) => {
     const roomId = nanoid(8);
 
+    rooms.add(roomId);
     socket.join(roomId);
 
     callback(roomId);
 
     console.log(`Room created: ${roomId}`);
-  }); 
+  });
 
-  socket.on("join-room", (roomId) => {
+  socket.on("join-room", (roomId, callback) => {
+    if (!rooms.has(roomId)) {
+      callback({ success: false, message: "Room not found" });
+      return;
+    }
+
     socket.join(roomId);
+
+    callback({ success: true, message: "Joined room successfully" });
+
     console.log(`${socket.id} joined room: ${roomId}`);
   });
 
