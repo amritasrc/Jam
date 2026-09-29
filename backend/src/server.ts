@@ -46,7 +46,14 @@ io.on("connection", (socket) => {
   });
 
   socket.on("room-message", ({ roomId, message }) => {
+    if (!rooms.has(roomId)) {
+      console.log(`Message rejected: room ${roomId} not found`);
+      return;
+    }
+
     io.to(roomId).emit("room-message", message);
+
+    console.log(`Message sent to room ${roomId}: ${message}`);
   });
 
   socket.on("message", (message) => {
