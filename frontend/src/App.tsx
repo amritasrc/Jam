@@ -27,13 +27,6 @@ function App() {
     }), []
   });
 
-  const sendMessage = () => {
-    socket.emit("room-message", {
-      roomId: "room-A",
-      message: "Hello from room A!",
-    });
-  };
-
   return (
     <div>
       <h1>Jam</h1>
