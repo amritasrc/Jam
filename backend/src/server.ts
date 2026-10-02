@@ -32,18 +32,21 @@ io.on("connection", (socket) => {
     console.log(`Room created: ${roomId}`);
   });
 
-  socket.on("join-room", (roomId, callback) => {
-    if (!rooms.has(roomId)) {
-      callback({ success: false, message: "Room not found" });
-      return;
-    }
+  socket.on("join-room", async (roomId, callback) => {
+  if (!rooms.has(roomId)) {
+    callback({ success: false, message: "Room not found" });
+    return;
+  }
 
-    socket.join(roomId);
+  socket.join(roomId);
 
-    callback({ success: true, message: "Joined room successfully" });
+  const members = await io.in(roomId).fetchSockets();
+  console.log(`Members in room ${roomId}: ${members.length}`);
 
-    console.log(`${socket.id} joined room: ${roomId}`);
-  });
+  callback({ success: true, message: "Joined room successfully" });
+
+  console.log(`${socket.id} joined room: ${roomId}`);
+});
 
   socket.on("room-message", ({ roomId, message }) => {
     if (!rooms.has(roomId)) {

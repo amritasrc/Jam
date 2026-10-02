@@ -3,29 +3,33 @@ import { io } from "socket.io-client";
 
 const socket = io("http://localhost:3000");
 
-function App() {
+(window as any).jamSocket = socket; // Temporary testing line
 
+function App() {
   const [roomId, setRoomId] = useState("");
 
   useEffect(() => {
-    socket.on("connect", () => {
+    const handleConnect = () => {
       console.log("Connected:", socket.id);
 
       socket.emit("create-room", (id: string) => {
         console.log("Created room:", id);
         setRoomId(id);
       });
+    };
 
-      socket.on("room-message", (message: string) => {
-        console.log("Room message:", message);
-      });
+    const handleRoomMessage = (message: string) => {
+      console.log("Room message:", message);
+    };
 
-      return () => {
-        socket.off("connect");
-        socket.off("room-message");
-      };
-    }), []
-  });
+    socket.on("connect", handleConnect);
+    socket.on("room-message", handleRoomMessage);
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("room-message", handleRoomMessage);
+    };
+  }, []);
 
   return (
     <div>
