@@ -21,11 +21,15 @@ const rooms = new Set<string>();
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  let currentRoom: string | null = null;
+
   socket.on("create-room", (callback) => {
     const roomId = nanoid(8);
 
     rooms.add(roomId);
     socket.join(roomId);
+
+    currentRoom = roomId;
 
     callback(roomId);
 
@@ -33,20 +37,28 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join-room", async (roomId, callback) => {
-  if (!rooms.has(roomId)) {
-    callback({ success: false, message: "Room not found" });
-    return;
-  }
+    if (!rooms.has(roomId)) {
+      callback({
+        success: false,
+        message: "Room not found",
+      });
+      return;
+    }
 
-  socket.join(roomId);
+    socket.join(roomId);
+    currentRoom = roomId;
 
-  const members = await io.in(roomId).fetchSockets();
-  console.log(`Members in room ${roomId}: ${members.length}`);
+    const members = await io.in(roomId).fetchSockets();
 
-  callback({ success: true, message: "Joined room successfully" });
+    console.log(`Members in room ${roomId}: ${members.length}`);
 
-  console.log(`${socket.id} joined room: ${roomId}`);
-});
+    callback({
+      success: true,
+      message: "Joined room successfully",
+    });
+
+    console.log(`${socket.id} joined room: ${roomId}`);
+  });
 
   socket.on("room-message", ({ roomId, message }) => {
     if (!rooms.has(roomId)) {
@@ -61,14 +73,21 @@ io.on("connection", (socket) => {
 
   socket.on("message", (message) => {
     console.log("Message received:", message);
-
     socket.broadcast.emit("message", message);
   });
 
   socket.emit("welcome", "Welcome to Jam! 🎵");
 
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     console.log("User disconnected:", socket.id);
+
+    if (currentRoom) {
+      const members = await io.in(currentRoom).fetchSockets();
+
+      console.log(
+        `Members remaining in room ${currentRoom}: ${members.length}`
+      );
+    }
   });
 });
 
