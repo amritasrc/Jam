@@ -52,6 +52,8 @@ io.on("connection", (socket) => {
 
     console.log(`Members in room ${roomId}: ${members.length}`);
 
+    io.to(roomId).emit("room-members", members.length);
+
     callback({
       success: true,
       message: "Joined room successfully",
@@ -87,6 +89,8 @@ io.on("connection", (socket) => {
       console.log(
         `Members remaining in room ${currentRoom}: ${members.length}`
       );
+
+      io.to(currentRoom).emit("room-members", members.length);
 
       if (members.length === 0) {
         rooms.delete(currentRoom);
