@@ -87,6 +87,11 @@ io.on("connection", (socket) => {
       console.log(
         `Members remaining in room ${currentRoom}: ${members.length}`
       );
+
+      if (members.length === 0) {
+        rooms.delete(currentRoom);
+        console.log(`Room deleted: ${currentRoom}`);
+      }
     }
   });
 });
