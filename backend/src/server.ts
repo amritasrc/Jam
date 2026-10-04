@@ -33,6 +33,8 @@ io.on("connection", (socket) => {
     socket.join(roomId);
     currentRoom = roomId;
 
+    io.to(roomId).emit("room-host", socket.id);
+
     callback(roomId);
 
     console.log(`Room created: ${roomId}`);
@@ -53,6 +55,7 @@ io.on("connection", (socket) => {
 
     const members = await io.in(roomId).fetchSockets();
     const hostId = roomHosts.get(roomId);
+    io.to(roomId).emit("room-host", hostId);
 
     const isHost = socket.id === hostId;
 
