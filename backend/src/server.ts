@@ -17,6 +17,7 @@ const io = new Server(httpServer, {
 });
 
 const rooms = new Set<string>();
+const roomHosts = new Map<string, string>();
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -27,13 +28,15 @@ io.on("connection", (socket) => {
     const roomId = nanoid(8);
 
     rooms.add(roomId);
-    socket.join(roomId);
+    roomHosts.set(roomId, socket.id);
 
+    socket.join(roomId);
     currentRoom = roomId;
 
     callback(roomId);
 
     console.log(`Room created: ${roomId}`);
+    console.log(`Host: ${socket.id}`);
   });
 
   socket.on("join-room", async (roomId, callback) => {
@@ -94,6 +97,8 @@ io.on("connection", (socket) => {
 
       if (members.length === 0) {
         rooms.delete(currentRoom);
+        roomHosts.delete(currentRoom);
+
         console.log(`Room deleted: ${currentRoom}`);
       }
     }
