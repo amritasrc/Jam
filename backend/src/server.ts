@@ -52,17 +52,20 @@ io.on("connection", (socket) => {
     currentRoom = roomId;
 
     const members = await io.in(roomId).fetchSockets();
+    const hostId = roomHosts.get(roomId);
+
+    const isHost = socket.id === hostId;
 
     console.log(`Members in room ${roomId}: ${members.length}`);
-
-    io.to(roomId).emit("room-members", members.length);
+    console.log(`${socket.id} joined as ${isHost ? "host" : "participant"}`);
 
     callback({
       success: true,
       message: "Joined room successfully",
+      isHost,
     });
 
-    console.log(`${socket.id} joined room: ${roomId}`);
+    io.to(roomId).emit("room-members", members.length);
   });
 
   socket.on("room-message", ({ roomId, message }) => {
