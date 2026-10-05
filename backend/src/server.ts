@@ -101,11 +101,26 @@ io.on("connection", (socket) => {
 
       io.to(currentRoom).emit("room-members", members.length);
 
+      // Room is empty
       if (members.length === 0) {
         rooms.delete(currentRoom);
         roomHosts.delete(currentRoom);
 
         console.log(`Room deleted: ${currentRoom}`);
+        return;
+      }
+
+      // Host disconnected
+      if (roomHosts.get(currentRoom) === socket.id) {
+        const newHost = members[0];
+
+        roomHosts.set(currentRoom, newHost.id);
+
+        io.to(currentRoom).emit("room-host", newHost.id);
+
+        console.log(
+          `Host disconnected. New host: ${newHost.id}`
+        );
       }
     }
   });
