@@ -50,17 +50,25 @@ io.on("connection", (socket) => {
       return;
     }
 
+    if (currentRoom === roomId) {
+      callback({
+        success: false,
+        message: "Already in this room",
+      });
+      return;
+    }
+
+    if (currentRoom) {
+      socket.leave(currentRoom);
+    }
+
     socket.join(roomId);
     currentRoom = roomId;
 
     const members = await io.in(roomId).fetchSockets();
     const hostId = roomHosts.get(roomId);
-    io.to(roomId).emit("room-host", hostId);
 
     const isHost = socket.id === hostId;
-
-    console.log(`Members in room ${roomId}: ${members.length}`);
-    console.log(`${socket.id} joined as ${isHost ? "host" : "participant"}`);
 
     callback({
       success: true,
@@ -69,6 +77,9 @@ io.on("connection", (socket) => {
     });
 
     io.to(roomId).emit("room-members", members.length);
+    io.to(roomId).emit("room-host", hostId);
+
+    console.log(`${socket.id} joined room: ${roomId}`);
   });
 
   socket.on("room-message", ({ roomId, message }) => {
