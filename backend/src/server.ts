@@ -18,6 +18,14 @@ const io = new Server(httpServer, {
 
 const rooms = new Set<string>();
 const roomHosts = new Map<string, string>();
+const roomStates = new Map<
+  string,
+  {
+    currentSong: string | null;
+    isPlaying: boolean;
+    currentTime: number;
+  }
+>();
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -29,6 +37,17 @@ io.on("connection", (socket) => {
 
     rooms.add(roomId);
     roomHosts.set(roomId, socket.id);
+
+    roomStates.set(roomId, {
+      currentSong: null,
+      isPlaying: false,
+      currentTime: 0,
+    });
+
+    socket.join(roomId);
+    currentRoom = roomId;
+
+    callback(roomId);
 
     socket.join(roomId);
     currentRoom = roomId;
@@ -67,6 +86,7 @@ io.on("connection", (socket) => {
 
     const members = await io.in(roomId).fetchSockets();
     const hostId = roomHosts.get(roomId);
+    const roomState = roomStates.get(roomId);
 
     const isHost = socket.id === hostId;
 
@@ -74,6 +94,7 @@ io.on("connection", (socket) => {
       success: true,
       message: "Joined room successfully",
       isHost,
+      roomState,
     });
 
     io.to(roomId).emit("room-members", members.length);
@@ -132,6 +153,15 @@ io.on("connection", (socket) => {
         console.log(
           `Host disconnected. New host: ${newHost.id}`
         );
+      }
+
+      if (members.length === 0) {
+        rooms.delete(currentRoom);
+        roomHosts.delete(currentRoom);
+        roomStates.delete(currentRoom);
+
+        console.log(`Room deleted: ${currentRoom}`);
+        return;
       }
     }
   });
