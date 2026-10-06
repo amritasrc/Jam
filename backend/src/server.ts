@@ -165,6 +165,27 @@ io.on("connection", (socket) => {
       }
     }
   });
+  socket.on("playback-update", ({ roomId, isPlaying, currentTime }) => {
+    const hostId = roomHosts.get(roomId);
+
+    if (socket.id !== hostId) {
+      return;
+    }
+
+    const roomState = roomStates.get(roomId);
+
+    if (!roomState) {
+      return;
+    }
+
+    roomState.isPlaying = isPlaying;
+    roomState.currentTime = currentTime;
+
+    io.to(roomId).emit("playback-update", {
+      isPlaying,
+      currentTime,
+    });
+  });
 });
 
 httpServer.listen(PORT, () => {
