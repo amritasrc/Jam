@@ -97,6 +97,8 @@ io.on("connection", (socket) => {
       roomState,
     });
 
+    socket.emit("playback-state", roomState);
+
     io.to(roomId).emit("room-members", members.length);
     io.to(roomId).emit("room-host", hostId);
 
