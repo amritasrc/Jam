@@ -32,6 +32,7 @@ io.on("connection", (socket) => {
 
   let currentRoom: string | null = null;
 
+
   socket.on("create-room", (callback) => {
     const roomId = nanoid(8);
 
@@ -47,11 +48,6 @@ io.on("connection", (socket) => {
     socket.join(roomId);
     currentRoom = roomId;
 
-    callback(roomId);
-
-    socket.join(roomId);
-    currentRoom = roomId;
-
     io.to(roomId).emit("room-host", socket.id);
 
     callback(roomId);
@@ -59,6 +55,7 @@ io.on("connection", (socket) => {
     console.log(`Room created: ${roomId}`);
     console.log(`Host: ${socket.id}`);
   });
+
 
   socket.on("join-room", async (roomId, callback) => {
     if (!rooms.has(roomId)) {
