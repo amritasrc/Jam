@@ -46,6 +46,11 @@ io.on("connection", (socket) => {
     });
 
     socket.join(roomId);
+    currentRoom = roomId; if (currentRoom) {
+      socket.leave(currentRoom);
+    }
+
+    socket.join(roomId);
     currentRoom = roomId;
 
     io.to(roomId).emit("room-host", socket.id);
@@ -154,6 +159,7 @@ io.on("connection", (socket) => {
         );
       }
 
+      // Room is empty
       if (members.length === 0) {
         rooms.delete(currentRoom);
         roomHosts.delete(currentRoom);
