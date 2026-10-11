@@ -21,10 +21,9 @@ const io = new Server(httpServer, {
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
+  socket.data.currentRoom = null as string | null;
+
   registerRoomHandlers(io, socket);
-
-  let currentRoom: string | null = null;
-
 
   const leaveRoom = async (roomId: string) => {
     socket.leave(roomId);
@@ -53,36 +52,6 @@ io.on("connection", (socket) => {
     }
   };
 
-
-  socket.on("create-room", async (callback) => {
-    if (currentRoom) {
-      await leaveRoom(currentRoom);
-      currentRoom = null;
-    }
-
-    const roomId = nanoid(8);
-
-    rooms.add(roomId);
-    roomHosts.set(roomId, socket.id);
-
-    roomStates.set(roomId, {
-      currentSong: null,
-      isPlaying: false,
-      currentTime: 0,
-    });
-
-    socket.join(roomId);
-    currentRoom = roomId;
-
-    io.to(roomId).emit("room-host", socket.id);
-
-    callback(roomId);
-
-    console.log(`Room created: ${roomId}`);
-    console.log(`Host: ${socket.id}`);
-  });
-
-
   socket.on("join-room", async (roomId, callback) => {
     if (!rooms.has(roomId)) {
       callback({
@@ -92,7 +61,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (currentRoom === roomId) {
+    if (socket.data.currentRoom === roomId) {
       callback({
         success: false,
         message: "Already in this room",
@@ -100,13 +69,13 @@ io.on("connection", (socket) => {
       return;
     }
 
-    if (currentRoom) {
-      await leaveRoom(currentRoom);
-      currentRoom = null;
+    if (socket.data.currentRoom) {
+      await leaveRoom(socket.data.currentRoom);
+      socket.data.currentRoom = null;
     }
 
     socket.join(roomId);
-    currentRoom = roomId;
+    socket.data.currentRoom = roomId;
 
     const members = await io.in(roomId).fetchSockets();
     const hostId = roomHosts.get(roomId);
@@ -128,7 +97,7 @@ io.on("connection", (socket) => {
 
     console.log(`${socket.id} joined room: ${roomId}`);
   });
-  
+
   socket.on("message", (message) => {
     console.log("Message received:", message);
     socket.broadcast.emit("message", message);
@@ -139,9 +108,9 @@ io.on("connection", (socket) => {
   socket.on("disconnect", async () => {
     console.log("User disconnected:", socket.id);
 
-    if (currentRoom) {
-      await leaveRoom(currentRoom);
-      currentRoom = null;
+    if (socket.data.currentRoom) {
+      await leaveRoom(socket.data.currentRoom);
+      socket.data.currentRoom = null;
     }
   });
 
