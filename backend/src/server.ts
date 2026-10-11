@@ -33,7 +33,40 @@ io.on("connection", (socket) => {
   let currentRoom: string | null = null;
 
 
-  socket.on("create-room", (callback) => {
+  const leaveRoom = async (roomId: string) => {
+    socket.leave(roomId);
+
+    const members = await io.in(roomId).fetchSockets();
+
+    io.to(roomId).emit("room-members", members.length);
+
+    if (members.length === 0) {
+      rooms.delete(roomId);
+      roomHosts.delete(roomId);
+      roomStates.delete(roomId);
+
+      console.log(`Room deleted: ${roomId}`);
+      return;
+    }
+
+    if (roomHosts.get(roomId) === socket.id) {
+      const newHost = members[0];
+
+      roomHosts.set(roomId, newHost.id);
+
+      io.to(roomId).emit("room-host", newHost.id);
+
+      console.log(`Host transferred to: ${newHost.id}`);
+    }
+  };
+
+
+  socket.on("create-room", async (callback) => {
+    if (currentRoom) {
+      await leaveRoom(currentRoom);
+      currentRoom = null;
+    }
+
     const roomId = nanoid(8);
 
     rooms.add(roomId);
@@ -44,11 +77,6 @@ io.on("connection", (socket) => {
       isPlaying: false,
       currentTime: 0,
     });
-
-    socket.join(roomId);
-    currentRoom = roomId; if (currentRoom) {
-      socket.leave(currentRoom);
-    }
 
     socket.join(roomId);
     currentRoom = roomId;
@@ -80,7 +108,8 @@ io.on("connection", (socket) => {
     }
 
     if (currentRoom) {
-      socket.leave(currentRoom);
+      await leaveRoom(currentRoom);
+      currentRoom = null;
     }
 
     socket.join(roomId);
@@ -129,47 +158,11 @@ io.on("connection", (socket) => {
     console.log("User disconnected:", socket.id);
 
     if (currentRoom) {
-      const members = await io.in(currentRoom).fetchSockets();
-
-      console.log(
-        `Members remaining in room ${currentRoom}: ${members.length}`
-      );
-
-      io.to(currentRoom).emit("room-members", members.length);
-
-      // Room is empty
-      if (members.length === 0) {
-        rooms.delete(currentRoom);
-        roomHosts.delete(currentRoom);
-
-        console.log(`Room deleted: ${currentRoom}`);
-        return;
-      }
-
-      // Host disconnected
-      if (roomHosts.get(currentRoom) === socket.id) {
-        const newHost = members[0];
-
-        roomHosts.set(currentRoom, newHost.id);
-
-        io.to(currentRoom).emit("room-host", newHost.id);
-
-        console.log(
-          `Host disconnected. New host: ${newHost.id}`
-        );
-      }
-
-      // Room is empty
-      if (members.length === 0) {
-        rooms.delete(currentRoom);
-        roomHosts.delete(currentRoom);
-        roomStates.delete(currentRoom);
-
-        console.log(`Room deleted: ${currentRoom}`);
-        return;
-      }
+      await leaveRoom(currentRoom);
+      currentRoom = null;
     }
   });
+
   socket.on("playback-update", ({ roomId, isPlaying, currentTime }) => {
     const hostId = roomHosts.get(roomId);
 
