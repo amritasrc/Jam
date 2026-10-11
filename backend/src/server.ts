@@ -3,6 +3,8 @@ import { createServer } from "http";
 import app from "./app.js";
 import { Server } from "socket.io";
 import { nanoid } from "nanoid";
+import { registerRoomHandlers } from "./sockets/roomHandlers.js";
+import { rooms, roomHosts, roomStates } from "./services/roomService.js";
 
 dotenv.config();
 
@@ -16,19 +18,10 @@ const io = new Server(httpServer, {
   },
 });
 
-const rooms = new Set<string>();
-const roomHosts = new Map<string, string>();
-const roomStates = new Map<
-  string,
-  {
-    currentSong: string | null;
-    isPlaying: boolean;
-    currentTime: number;
-  }
->();
-
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+  registerRoomHandlers(io, socket);
 
   let currentRoom: string | null = null;
 
@@ -135,18 +128,7 @@ io.on("connection", (socket) => {
 
     console.log(`${socket.id} joined room: ${roomId}`);
   });
-
-  socket.on("room-message", ({ roomId, message }) => {
-    if (!rooms.has(roomId)) {
-      console.log(`Message rejected: room ${roomId} not found`);
-      return;
-    }
-
-    io.to(roomId).emit("room-message", message);
-
-    console.log(`Message sent to room ${roomId}: ${message}`);
-  });
-
+  
   socket.on("message", (message) => {
     console.log("Message received:", message);
     socket.broadcast.emit("message", message);
