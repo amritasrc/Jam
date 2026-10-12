@@ -1,10 +1,10 @@
-
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import app from "./app.js";
 import { registerRoomHandlers } from "./sockets/roomHandlers.js";
 import { roomHosts, roomStates } from "./services/roomService.js";
+import { registerPlaybackHandlers } from "./sockets/playbackHandlers.js";
 
 dotenv.config();
 
@@ -24,6 +24,7 @@ io.on("connection", (socket) => {
   socket.data.currentRoom = null as string | null;
 
   registerRoomHandlers(io, socket);
+  registerPlaybackHandlers(io, socket);
 
   socket.on("message", (message) => {
     console.log("Message received:", message);
@@ -31,28 +32,6 @@ io.on("connection", (socket) => {
   });
 
   socket.emit("welcome", "Welcome to Jam! 🎵");
-
-  socket.on("playback-update", ({ roomId, isPlaying, currentTime }) => {
-    const hostId = roomHosts.get(roomId);
-
-    if (socket.id !== hostId) {
-      return;
-    }
-
-    const roomState = roomStates.get(roomId);
-
-    if (!roomState) {
-      return;
-    }
-
-    roomState.isPlaying = isPlaying;
-    roomState.currentTime = currentTime;
-
-    io.to(roomId).emit("playback-update", {
-      isPlaying,
-      currentTime,
-    });
-  });
 });
 
 httpServer.listen(PORT, () => {
