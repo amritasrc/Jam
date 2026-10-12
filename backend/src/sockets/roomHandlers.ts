@@ -4,6 +4,7 @@ import {
     rooms,
     roomHosts,
     roomStates,
+    createRoomState,
 } from "../services/roomService.js";
 
 export function registerRoomHandlers(
@@ -106,11 +107,7 @@ export function registerRoomHandlers(
         rooms.add(roomId);
         roomHosts.set(roomId, socket.id);
 
-        roomStates.set(roomId, {
-            currentSong: null,
-            isPlaying: false,
-            currentTime: 0,
-        });
+        roomStates.set(roomId, createRoomState());
 
         socket.join(roomId);
         socket.data.currentRoom = roomId;
