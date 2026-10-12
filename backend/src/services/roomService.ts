@@ -1,4 +1,3 @@
-
 export const rooms = new Set<string>();
 
 export const roomHosts = new Map<string, string>();

@@ -1,4 +1,3 @@
-
 import type { Server, Socket } from "socket.io";
 import { roomHosts, roomStates } from "../services/roomService.js";
 

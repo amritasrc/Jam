@@ -3,8 +3,8 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import app from "./app.js";
 import { registerRoomHandlers } from "./sockets/roomHandlers.js";
-import { roomHosts, roomStates } from "./services/roomService.js";
 import { registerPlaybackHandlers } from "./sockets/playbackHandlers.js";
+import { registerGeneralHandlers } from "./sockets/generalHandlers.js";
 
 dotenv.config();
 
@@ -25,13 +25,8 @@ io.on("connection", (socket) => {
 
   registerRoomHandlers(io, socket);
   registerPlaybackHandlers(io, socket);
+  registerGeneralHandlers(socket);
 
-  socket.on("message", (message) => {
-    console.log("Message received:", message);
-    socket.broadcast.emit("message", message);
-  });
-
-  socket.emit("welcome", "Welcome to Jam! 🎵");
 });
 
 httpServer.listen(PORT, () => {
