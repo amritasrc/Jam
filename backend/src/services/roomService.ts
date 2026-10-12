@@ -10,3 +10,11 @@ export const roomStates = new Map<
     currentTime: number;
   }
 >();
+
+export function createRoomState() {
+  return {
+    currentSong: null,
+    isPlaying: false,
+    currentTime: 0,
+  };
+}
