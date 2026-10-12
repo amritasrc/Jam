@@ -37,6 +37,52 @@ export function registerRoomHandlers(
         }
     };
 
+    socket.on("join-room", async (roomId, callback) => {
+        if (!rooms.has(roomId)) {
+            callback({
+                success: false,
+                message: "Room not found",
+            });
+            return;
+        }
+
+        if (socket.data.currentRoom === roomId) {
+            callback({
+                success: false,
+                message: "Already in this room",
+            });
+            return;
+        }
+
+        if (socket.data.currentRoom) {
+            await leaveRoom(socket.data.currentRoom);
+            socket.data.currentRoom = null;
+        }
+
+        socket.join(roomId);
+        socket.data.currentRoom = roomId;
+
+        const members = await io.in(roomId).fetchSockets();
+        const hostId = roomHosts.get(roomId);
+        const roomState = roomStates.get(roomId);
+
+        const isHost = socket.id === hostId;
+
+        callback({
+            success: true,
+            message: "Joined room successfully",
+            isHost,
+            roomState,
+        });
+
+        socket.emit("playback-state", roomState);
+
+        io.to(roomId).emit("room-members", members.length);
+        io.to(roomId).emit("room-host", hostId);
+
+        console.log(`${socket.id} joined room: ${roomId}`);
+    });
+
     socket.on("room-message", ({ roomId, message }) => {
         if (!rooms.has(roomId)) {
             console.log(`Message rejected: room ${roomId} not found`);
@@ -76,6 +122,15 @@ export function registerRoomHandlers(
 
         console.log(`Room created: ${roomId}`);
         console.log(`Host: ${socket.id}`);
+    });
+
+    socket.on("disconnect", async () => {
+        console.log("User disconnected:", socket.id);
+
+        if (socket.data.currentRoom) {
+            await leaveRoom(socket.data.currentRoom);
+            socket.data.currentRoom = null;
+        }
     });
 
 }
