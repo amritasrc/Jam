@@ -17,3 +17,8 @@ export function createRoomState(): RoomState {
     currentTime: 0,
   };
 }
+
+
+export function roomExists(roomId: string): boolean {
+  return rooms.has(roomId);
+}

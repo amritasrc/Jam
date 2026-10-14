@@ -5,6 +5,7 @@ import {
     roomHosts,
     roomStates,
     createRoomState,
+    roomExists,
 } from "../services/roomService.js";
 
 export function registerRoomHandlers(
@@ -39,7 +40,7 @@ export function registerRoomHandlers(
     };
 
     socket.on("join-room", async (roomId, callback) => {
-        if (!rooms.has(roomId)) {
+        if (!roomExists(roomId)) {
             callback({
                 success: false,
                 message: "Room not found",
