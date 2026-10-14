@@ -1,44 +1,79 @@
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
-
-const socket = io("http://localhost:3000");
-
-(window as any).jamSocket = socket; // Temporary testing line
+import { socket } from "./lib/socket";
 
 function App() {
   const [roomId, setRoomId] = useState("");
+  const [joinCode, setJoinCode] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const handleConnect = () => {
       console.log("Connected:", socket.id);
-
-      socket.emit("create-room", (id: string) => {
-        console.log("Created room:", id);
-        setRoomId(id);
-      });
-    };
-
-    const handleRoomMessage = (message: string) => {
-      console.log("Room message:", message);
     };
 
     socket.on("connect", handleConnect);
-    socket.on("room-message", handleRoomMessage);
 
     return () => {
       socket.off("connect", handleConnect);
-      socket.off("room-message", handleRoomMessage);
     };
   }, []);
 
+  const createRoom = () => {
+    socket.emit("create-room", (id: string) => {
+      setRoomId(id);
+      setMessage("Room created successfully!");
+    });
+  };
+
+  const joinRoom = () => {
+    const code = joinCode.trim();
+
+    if (!code) {
+      setMessage("Please enter a room code.");
+      return;
+    }
+
+    socket.emit(
+      "join-room",
+      code,
+      (response: {
+        success: boolean;
+        message: string;
+      }) => {
+        setMessage(response.message);
+
+        if (response.success) {
+          setRoomId(code);
+        }
+      }
+    );
+  };
+
   return (
     <div>
-      <h1>Jam</h1>
+      <h1>Jam 🎵</h1>
+      <p>Listen together, wherever you are.</p>
+
+      <button onClick={createRoom}>Create Room</button>
+
+      <hr />
+
+      <h2>Join a Room</h2>
+
+      <input
+        type="text"
+        placeholder="Enter room code"
+        value={joinCode}
+        onChange={(event) => setJoinCode(event.target.value)}
+      />
+
+      <button onClick={joinRoom}>Join Room</button>
+
+      {message && <p>{message}</p>}
 
       {roomId && (
         <div>
-          <p>Your room code:</p>
-          <h2>{roomId}</h2>
+          <h2>Your room code: {roomId}</h2>
           <p>Share this code with your friends!</p>
         </div>
       )}
