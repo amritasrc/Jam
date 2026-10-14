@@ -11,6 +11,15 @@ export function registerPlaybackHandlers(io: Server, socket: Socket) {
 
     if (socket.id !== hostId) return;
 
+    if (
+      typeof isPlaying !== "boolean" ||
+      typeof currentTime !== "number" ||
+      !Number.isFinite(currentTime) ||
+      currentTime < 0
+    ) {
+      return;
+    }
+
     const roomState = roomStates.get(roomId);
 
     if (!roomState) return;
