@@ -1,134 +1,131 @@
 import type { Server, Socket } from "socket.io";
 import { nanoid } from "nanoid";
 import {
-    rooms,
-    roomHosts,
-    roomStates,
-    createRoomState,
-    roomExists,
+  rooms,
+  roomHosts,
+  roomStates,
+  createRoomState,
+  roomExists,
 } from "../services/roomService.js";
 
-export function registerRoomHandlers(
-    io: Server,
-    socket: Socket
-) {
+export function registerRoomHandlers(io: Server, socket: Socket) {
+  const leaveRoom = async (roomId: string) => {
+    socket.leave(roomId);
 
-    const leaveRoom = async (roomId: string) => {
-        socket.leave(roomId);
+    const members = await io.in(roomId).fetchSockets();
 
-        const members = await io.in(roomId).fetchSockets();
+    io.to(roomId).emit("room-members", members.length);
 
-        io.to(roomId).emit("room-members", members.length);
+    if (members.length === 0) {
+      rooms.delete(roomId);
+      roomHosts.delete(roomId);
+      roomStates.delete(roomId);
 
-        if (members.length === 0) {
-            rooms.delete(roomId);
-            roomHosts.delete(roomId);
-            roomStates.delete(roomId);
+      console.log(`Room deleted: ${roomId}`);
+      return;
+    }
 
-            console.log(`Room deleted: ${roomId}`);
-            return;
-        }
+    if (roomHosts.get(roomId) === socket.id) {
+      const newHost = members[0];
 
-        if (roomHosts.get(roomId) === socket.id) {
-            const newHost = members[0];
+      roomHosts.set(roomId, newHost.id);
+      io.to(roomId).emit("room-host", newHost.id);
 
-            roomHosts.set(roomId, newHost.id);
-            io.to(roomId).emit("room-host", newHost.id);
+      console.log(`Host transferred to: ${newHost.id}`);
+    }
+  };
 
-            console.log(`Host transferred to: ${newHost.id}`);
-        }
-    };
+  socket.on("join-room", async (roomId, callback) => {
+    if (!roomExists(roomId)) {
+      callback({
+        success: false,
+        message: "Room not found",
+      });
+      return;
+    }
 
-    socket.on("join-room", async (roomId, callback) => {
-        if (!roomExists(roomId)) {
-            callback({
-                success: false,
-                message: "Room not found",
-            });
-            return;
-        }
+    if (socket.data.currentRoom === roomId) {
+      callback({
+        success: false,
+        message: "Already in this room",
+      });
+      return;
+    }
 
-        if (socket.data.currentRoom === roomId) {
-            callback({
-                success: false,
-                message: "Already in this room",
-            });
-            return;
-        }
+    if (socket.data.currentRoom) {
+      await leaveRoom(socket.data.currentRoom);
+      socket.data.currentRoom = null;
+    }
 
-        if (socket.data.currentRoom) {
-            await leaveRoom(socket.data.currentRoom);
-            socket.data.currentRoom = null;
-        }
+    socket.join(roomId);
+    socket.data.currentRoom = roomId;
 
-        socket.join(roomId);
-        socket.data.currentRoom = roomId;
+    const members = await io.in(roomId).fetchSockets();
+    const hostId = roomHosts.get(roomId);
+    const roomState = roomStates.get(roomId);
+    const isHost = socket.id === hostId;
 
-        const members = await io.in(roomId).fetchSockets();
-        const hostId = roomHosts.get(roomId);
-        const roomState = roomStates.get(roomId);
-
-        const isHost = socket.id === hostId;
-
-        callback({
-            success: true,
-            message: "Joined room successfully",
-            isHost,
-            roomState,
-        });
-
-        socket.emit("playback-state", roomState);
-
-        io.to(roomId).emit("room-members", members.length);
-        io.to(roomId).emit("room-host", hostId);
-
-        console.log(`${socket.id} joined room: ${roomId}`);
+    callback({
+      success: true,
+      message: "Joined room successfully",
+      isHost,
+      roomState,
     });
 
-    socket.on("room-message", ({ roomId, message }) => {
-        if (!rooms.has(roomId)) {
-            console.log(`Message rejected: room ${roomId} not found`);
-            return;
-        }
+    socket.emit("playback-state", roomState);
 
-        io.to(roomId).emit("room-message", message);
+    io.to(roomId).emit("room-members", members.length);
+    io.to(roomId).emit("room-host", hostId);
 
-        console.log(`Message sent to room ${roomId}: ${message}`);
-    });
+    console.log(`${socket.id} joined room: ${roomId}`);
+  });
 
+  socket.on("room-message", ({ roomId, message }) => {
+    if (!roomExists(roomId)) {
+      console.log(`Message rejected: room ${roomId} not found`);
+      return;
+    }
 
-    socket.on("create-room", async (callback) => {
-        if (socket.data.currentRoom) {
-            await leaveRoom(socket.data.currentRoom);
-            socket.data.currentRoom = null;
-        }
+    if (socket.data.currentRoom !== roomId) {
+      console.log("Message rejected: sender is not in this room");
+      return;
+    }
 
-        const roomId = nanoid(8);
+    io.to(roomId).emit("room-message", message);
 
-        rooms.add(roomId);
-        roomHosts.set(roomId, socket.id);
+    console.log(`Message sent to room ${roomId}: ${message}`);
+  });
 
-        roomStates.set(roomId, createRoomState());
+  socket.on("create-room", async (callback) => {
+    if (socket.data.currentRoom) {
+      await leaveRoom(socket.data.currentRoom);
+      socket.data.currentRoom = null;
+    }
 
-        socket.join(roomId);
-        socket.data.currentRoom = roomId;
-        socket.data.isHost = true;
+    const roomId = nanoid(8);
 
-        io.to(roomId).emit("room-host", socket.id);
+    rooms.add(roomId);
+    roomHosts.set(roomId, socket.id);
+    roomStates.set(roomId, createRoomState());
 
-        callback(roomId);
+    socket.join(roomId);
+    socket.data.currentRoom = roomId;
+    socket.data.isHost = true;
 
-        console.log(`Room created: ${roomId}`);
-        console.log(`Host: ${socket.id}`);
-    });
+    io.to(roomId).emit("room-host", socket.id);
 
-    socket.on("disconnect", async () => {
-        console.log("User disconnected:", socket.id);
+    callback(roomId);
 
-        if (socket.data.currentRoom) {
-            await leaveRoom(socket.data.currentRoom);
-            socket.data.currentRoom = null;
-        }
-    });
+    console.log(`Room created: ${roomId}`);
+    console.log(`Host: ${socket.id}`);
+  });
 
+  socket.on("disconnect", async () => {
+    console.log("User disconnected:", socket.id);
+
+    if (socket.data.currentRoom) {
+      await leaveRoom(socket.data.currentRoom);
+      socket.data.currentRoom = null;
+    }
+  });
 }
