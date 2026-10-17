@@ -12,6 +12,8 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
   const leaveRoom = async (roomId: string) => {
     socket.leave(roomId);
 
+    socket.data.isHost = false;
+
     const members = await io.in(roomId).fetchSockets();
 
     io.to(roomId).emit("room-members", members.length);
@@ -120,6 +122,7 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
     console.log(`Host: ${socket.id}`);
   });
 
+
   socket.on("leave-room", async () => {
     if (!socket.data.currentRoom) {
       return;
@@ -128,9 +131,7 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
     const roomId = socket.data.currentRoom;
 
     await leaveRoom(roomId);
-
     socket.data.currentRoom = null;
-    socket.data.isHost = false;
   });
 
   socket.on("disconnect", async () => {
