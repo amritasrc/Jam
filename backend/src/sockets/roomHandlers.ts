@@ -120,6 +120,19 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
     console.log(`Host: ${socket.id}`);
   });
 
+  socket.on("leave-room", async () => {
+    if (!socket.data.currentRoom) {
+      return;
+    }
+
+    const roomId = socket.data.currentRoom;
+
+    await leaveRoom(roomId);
+
+    socket.data.currentRoom = null;
+    socket.data.isHost = false;
+  });
+
   socket.on("disconnect", async () => {
     console.log("User disconnected:", socket.id);
 
