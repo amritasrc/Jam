@@ -128,7 +128,17 @@ export function useJamSocket() {
   };
 
   const leaveRoom = () => {
+    socket.emit("leave-room");
+
     setRoomId("");
+    setMessage("");
+    setMembers(0);
+    setIsHost(false);
+    setRoomState({
+      currentSong: null,
+      isPlaying: false,
+      currentTime: 0,
+    });
     setMessages([]);
   };
 
