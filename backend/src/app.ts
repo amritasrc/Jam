@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import roomRoutes from "./routes/room.routes.js";
+import songRoutes from "./routes/song.routes.js";
 
 const app = express();
 
@@ -15,5 +16,6 @@ app.get("/", (req, res) => {
 });
 
 app.use("/api/rooms", roomRoutes);
+app.use("/api/songs", songRoutes);
 
 export default app;
