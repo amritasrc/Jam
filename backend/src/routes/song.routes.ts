@@ -1,5 +1,15 @@
 import { Router } from "express";
 import axios from "axios";
+import type { Song } from "../services/roomService.js";
+
+type YouTubeSearchItem = {
+  id?: { videoId?: string };
+  snippet?: {
+    title?: string;
+    channelTitle?: string;
+    thumbnails?: { medium?: { url?: string } };
+  };
+};
 
 const router = Router();
 
@@ -38,12 +48,18 @@ router.get("/search", async (req, res) => {
       }
     );
 
-    const songs = response.data.items.map((item: any) => ({
-      videoId: item.id.videoId,
-      title: item.snippet.title,
-      channelTitle: item.snippet.channelTitle,
-      thumbnail: item.snippet.thumbnails.medium?.url,
-    }));
+    const items = (response.data.items ?? []) as YouTubeSearchItem[];
+
+    const songs: Song[] = items
+      .filter((item): item is YouTubeSearchItem & { id: { videoId: string } } =>
+        Boolean(item.id?.videoId)
+      )
+      .map((item) => ({
+        videoId: item.id.videoId,
+        title: item.snippet?.title ?? "Unknown track",
+        channelTitle: item.snippet?.channelTitle ?? "",
+        thumbnail: item.snippet?.thumbnails?.medium?.url,
+      }));
 
     res.json({
       success: true,
