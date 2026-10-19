@@ -1,0 +1,52 @@
+import type { Server, Socket } from "socket.io";
+import { roomHosts, roomStates, roomExists } from "../services/roomService.js";
+import type { Song } from "../services/roomService.js";
+
+function isValidSong(song: unknown): song is Song {
+  if (!song || typeof song !== "object") return false;
+
+  const candidate = song as Partial<Song>;
+
+  if (typeof candidate.videoId !== "string" || !candidate.videoId.trim()) return false;
+  if (typeof candidate.title !== "string" || !candidate.title.trim()) return false;
+  if (typeof candidate.channelTitle !== "string") return false;
+
+  if (
+    candidate.thumbnail !== undefined &&
+    (typeof candidate.thumbnail !== "string" || !candidate.thumbnail.startsWith("https://"))
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+export function registerSongHandlers(io: Server, socket: Socket) {
+  socket.on("select-song", ({ roomId, song }) => {
+    if (!roomExists(roomId)) return;
+
+    if (socket.data.currentRoom !== roomId) return;
+
+    const hostId = roomHosts.get(roomId);
+
+    if (socket.id !== hostId) return;
+
+    if (!isValidSong(song)) return;
+
+    const roomState = roomStates.get(roomId);
+
+    if (!roomState) return;
+
+    roomState.currentSong = song;
+    roomState.currentTime = 0;
+    roomState.isPlaying = true;
+
+    io.to(roomId).emit("song-selected", {
+      song,
+      isPlaying: roomState.isPlaying,
+      currentTime: roomState.currentTime,
+    });
+
+    console.log(`Song selected in room ${roomId}: ${song.title}`);
+  });
+}

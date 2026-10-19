@@ -4,6 +4,7 @@ import { Server } from "socket.io";
 import app from "./app.js";
 import { registerRoomHandlers } from "./sockets/roomHandlers.js";
 import { registerPlaybackHandlers } from "./sockets/playbackHandlers.js";
+import { registerSongHandlers } from "./sockets/songHandlers.js";
 import { registerGeneralHandlers } from "./sockets/generalHandlers.js";
 
 dotenv.config();
@@ -25,6 +26,7 @@ io.on("connection", (socket) => {
 
   registerRoomHandlers(io, socket);
   registerPlaybackHandlers(io, socket);
+  registerSongHandlers(io, socket);
   registerGeneralHandlers(socket);
 
 });

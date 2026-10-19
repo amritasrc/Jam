@@ -1,5 +1,12 @@
+export type Song = {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+  thumbnail?: string;
+};
+
 export type RoomState = {
-  currentSong: string | null;
+  currentSong: Song | null;
   isPlaying: boolean;
   currentTime: number;
 };
