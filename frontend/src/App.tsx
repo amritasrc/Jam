@@ -2,6 +2,7 @@ import CreateRoom from "./components/CreateRoom";
 import JoinRoom from "./components/JoinRoom";
 import RoomInfo from "./components/RoomInfo";
 import NowPlaying from "./components/NowPlaying";
+import TrackLibrary from "./components/TrackLibrary";
 import ChatPanel from "./components/ChatPanel";
 import { useJamSocket } from "./hooks/useJamSocket";
 
@@ -62,7 +63,7 @@ function App() {
               <div className="space-y-4 lg:col-span-2">
                 <RoomInfo roomId={jam.roomId} members={jam.members} />
                 <NowPlaying
-                  title={jam.roomState.currentSong}
+                  title={jam.roomState.currentSong?.title ?? null}
                   isPlaying={jam.roomState.isPlaying}
                   currentTime={jam.roomState.currentTime}
                   isHost={jam.isHost}
@@ -73,15 +74,11 @@ function App() {
                   <p className="text-sm text-indigo-500">{jam.message}</p>
                 )}
 
-                <div className="glass rounded-3xl p-6">
-                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-                    Track library
-                  </p>
-                  <p className="mt-2 text-sm text-slate-500">
-                    Drop a song link to start listening together — playback stays
-                    perfectly in sync for everyone in the room.
-                  </p>
-                </div>
+                <TrackLibrary
+                  isHost={jam.isHost}
+                  currentSong={jam.roomState.currentSong}
+                  onSelect={jam.selectSong}
+                />
               </div>
 
               <div className="lg:row-span-2">

@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { socket } from "../lib/socket";
+import type { Song } from "../lib/api";
 
 export type RoomState = {
-  currentSong: string | null;
+  currentSong: Song | null;
   isPlaying: boolean;
   currentTime: number;
 };
@@ -51,12 +52,26 @@ export function useJamSocket() {
       setMessages((prev) => [...prev, msg]);
     };
 
+    const handleSongSelected = (payload: {
+      song: Song;
+      isPlaying: boolean;
+      currentTime: number;
+    }) => {
+      setRoomState((prev) => ({
+        ...prev,
+        currentSong: payload.song,
+        isPlaying: payload.isPlaying,
+        currentTime: payload.currentTime,
+      }));
+    };
+
     socket.on("connect", handleConnect);
     socket.on("room-members", handleRoomMembers);
     socket.on("room-host", handleRoomHost);
     socket.on("playback-state", handlePlaybackState);
     socket.on("playback-update", handlePlaybackUpdate);
     socket.on("room-message", handleRoomMessage);
+    socket.on("song-selected", handleSongSelected);
 
     return () => {
       socket.off("connect", handleConnect);
@@ -65,6 +80,7 @@ export function useJamSocket() {
       socket.off("playback-state", handlePlaybackState);
       socket.off("playback-update", handlePlaybackUpdate);
       socket.off("room-message", handleRoomMessage);
+      socket.off("song-selected", handleSongSelected);
     };
   }, []);
 
@@ -127,6 +143,11 @@ export function useJamSocket() {
     });
   };
 
+  const selectSong = (song: Song) => {
+    if (!isHost || !roomId) return;
+    socket.emit("select-song", { roomId, song });
+  };
+
   const leaveRoom = () => {
     socket.emit("leave-room");
 
@@ -153,6 +174,7 @@ export function useJamSocket() {
     joinRoom,
     sendMessage,
     togglePlayback,
+    selectSong,
     leaveRoom,
   };
 }
