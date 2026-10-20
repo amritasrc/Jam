@@ -80,7 +80,7 @@ export default function TrackLibrary({
   return (
     <section className="glass rounded-3xl p-6">
       <div className="mb-4 flex items-center gap-2">
-        <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-200 to-sky-200 text-indigo-600">
+        <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-linear-to-br from-indigo-200 to-sky-200 text-indigo-600">
           ♪
         </span>
         <div>
@@ -104,7 +104,7 @@ export default function TrackLibrary({
         />
         <button
           type="submit"
-          className="rounded-2xl bg-gradient-to-r from-indigo-500 to-sky-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200/50 transition hover:scale-[1.02] active:scale-[0.99]"
+          className="rounded-2xl bg-linear-to-r from-indigo-500 to-sky-500 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200/50 transition hover:scale-[1.02] active:scale-[0.99]"
         >
           Search
         </button>
@@ -165,7 +165,7 @@ export default function TrackLibrary({
                       ? "cursor-not-allowed bg-slate-300"
                       : isCurrent
                         ? "cursor-default bg-indigo-300"
-                        : "bg-gradient-to-r from-fuchsia-500 to-indigo-500 hover:scale-[1.02] active:scale-[0.99]"
+                        : "bg-linear-to-r from-fuchsia-500 to-indigo-500 hover:scale-[1.02] active:scale-[0.99]"
                   }`}
                 >
                   {isCurrent ? "Playing" : "Play"}
