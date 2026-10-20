@@ -64,6 +64,7 @@ function App() {
                 <RoomInfo roomId={jam.roomId} members={jam.members} />
                 <NowPlaying
                   title={jam.roomState.currentSong?.title ?? null}
+                  videoId={jam.roomState.currentSong?.videoId ?? null}
                   isPlaying={jam.roomState.isPlaying}
                   currentTime={jam.roomState.currentTime}
                   isHost={jam.isHost}
