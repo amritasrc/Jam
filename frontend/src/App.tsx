@@ -69,6 +69,7 @@ function App() {
                   currentTime={jam.roomState.currentTime}
                   isHost={jam.isHost}
                   onToggle={jam.togglePlayback}
+                  duration={jam.roomState.currentSong?.duration ?? null}
                 />
 
                 {jam.message && (

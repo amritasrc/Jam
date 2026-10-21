@@ -1,6 +1,7 @@
 type NowPlayingProps = {
   title: string | null;
   thumbnail: string | null;
+  duration: number | null;
   isPlaying: boolean;
   currentTime: number;
   isHost: boolean;
@@ -10,12 +11,16 @@ type NowPlayingProps = {
 export default function NowPlaying({
   title,
   thumbnail,
+  duration,
   isPlaying,
   currentTime,
   isHost,
   onToggle,
 }: NowPlayingProps) {
-  const progress = ((currentTime % 30) / 30) * 100;
+  const progress =
+    duration && duration > 0
+      ? Math.min(100, Math.max(0, (currentTime / duration) * 100))
+      : 0;
 
   return (
     <section className="glass rounded-3xl p-6">
@@ -47,27 +52,32 @@ export default function NowPlaying({
 
       <div className="mb-4 h-2 overflow-hidden rounded-full bg-white/70">
         <div
-          className={`h-full rounded-full bg-linear-to-r from-fuchsia-400 to-indigo-500 transition-all duration-500 ${
-            isPlaying ? "animate-pulse" : ""
-          }`}
+          className={`h-full rounded-full bg-linear-to-r from-fuchsia-400 to-indigo-500 transition-all duration-500 ${isPlaying ? "animate-pulse" : ""
+            }`}
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
 
       <div className="flex items-center justify-between">
         <span className="text-xs text-slate-500">
-          {currentTime.toFixed(1)}s synced
+          {Math.floor(currentTime / 60)}:
+          {String(Math.floor(currentTime % 60)).padStart(2, "0")}
+          {" / "}
+          {duration != null
+            ? `${Math.floor(duration / 60)}:${String(
+              Math.floor(duration % 60)
+            ).padStart(2, "0")}`
+            : "--:--"}
         </span>
 
         <button
           type="button"
           onClick={onToggle}
           disabled={!isHost}
-          className={`rounded-2xl px-5 py-2 text-sm font-semibold text-white shadow-md transition ${
-            isHost
-              ? "bg-linear-to-r from-fuchsia-500 to-indigo-500 hover:scale-[1.02] active:scale-[0.99]"
-              : "cursor-not-allowed bg-slate-300"
-          }`}
+          className={`rounded-2xl px-5 py-2 text-sm font-semibold text-white shadow-md transition ${isHost
+            ? "bg-linear-to-r from-fuchsia-500 to-indigo-500 hover:scale-[1.02] active:scale-[0.99]"
+            : "cursor-not-allowed bg-slate-300"
+            }`}
         >
           {isPlaying ? "Pause for all" : "Play for all"}
         </button>
