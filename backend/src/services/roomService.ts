@@ -3,6 +3,7 @@ export type Song = {
   title: string;
   channelTitle: string;
   thumbnail?: string;
+  duration?: number;
 };
 
 export type RoomState = {
