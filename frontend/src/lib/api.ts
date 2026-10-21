@@ -6,6 +6,7 @@ export type Song = {
   title: string;
   channelTitle: string;
   thumbnail?: string;
+  duration?: number;
 };
 
 const ENTITIES: Record<string, string> = {

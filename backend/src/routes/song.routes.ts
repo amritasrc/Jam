@@ -11,6 +11,20 @@ type YouTubeSearchItem = {
   };
 };
 
+function parseDuration(duration: string): number {
+  const match = duration.match(
+    /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/
+  );
+
+  if (!match) return 0;
+
+  const hours = Number(match[1] ?? 0);
+  const minutes = Number(match[2] ?? 0);
+  const seconds = Number(match[3] ?? 0);
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
 const router = Router();
 
 router.get("/search", async (req, res) => {
@@ -61,9 +75,36 @@ router.get("/search", async (req, res) => {
         thumbnail: item.snippet?.thumbnails?.medium?.url,
       }));
 
+    const videoIds = songs.map((song) => song.videoId);
+
+    const durationResponse = await axios.get(
+      "https://www.googleapis.com/youtube/v3/videos",
+      {
+        params: {
+          part: "contentDetails",
+          id: videoIds.join(","),
+          key: apiKey,
+        },
+      }
+    );
+
+    const durationMap = new Map<string, number>(
+      (durationResponse.data.items ?? []).map(
+        (item: { id: string; contentDetails: { duration: string } }) => [
+          item.id,
+          parseDuration(item.contentDetails.duration),
+        ]
+      )
+    );
+
+    const songsWithDuration: Song[] = songs.map((song) => ({
+      ...song,
+      duration: durationMap.get(song.videoId),
+    }));
+
     res.json({
       success: true,
-      songs,
+      songs: songsWithDuration,
     });
   } catch (error) {
     if (axios.isAxiosError(error)) {
