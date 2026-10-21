@@ -1,8 +1,6 @@
-import YouTube from "react-youtube";
-
 type NowPlayingProps = {
   title: string | null;
-  videoId: string | null;
+  thumbnail: string | null;
   isPlaying: boolean;
   currentTime: number;
   isHost: boolean;
@@ -11,7 +9,7 @@ type NowPlayingProps = {
 
 export default function NowPlaying({
   title,
-  videoId,
+  thumbnail,
   isPlaying,
   currentTime,
   isHost,
@@ -24,7 +22,7 @@ export default function NowPlaying({
   return (
     <section className="glass rounded-3xl p-6">
       <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-fuchsia-400">
             Now playing
           </p>
@@ -35,24 +33,19 @@ export default function NowPlaying({
             {isPlaying ? "Synced across the room" : "Paused for everyone"}
           </p>
         </div>
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-linear-to-br from-fuchsia-200 to-indigo-200 text-2xl shadow-inner">
-          ♫
-        </div>
-      </div>
 
-      {videoId && (
-        <div className="mb-5 overflow-hidden rounded-2xl">
-          <YouTube
-            videoId={videoId}
-            opts={{
-              width: "100%",
-              playerVars: {
-                playsinline: 1,
-              },
-            }}
+        {thumbnail ? (
+          <img
+            src={thumbnail}
+            alt={title ?? "Current track"}
+            className="h-16 w-16 shrink-0 rounded-2xl object-cover shadow-md"
           />
-        </div>
-      )}
+        ) : (
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-fuchsia-200 to-indigo-200 text-2xl">
+            ♫
+          </div>
+        )}
+      </div>
 
       <div className="mb-4 h-2 overflow-hidden rounded-full bg-white/70">
         <div
