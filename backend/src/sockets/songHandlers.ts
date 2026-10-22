@@ -1,6 +1,7 @@
 import type { Server, Socket } from "socket.io";
 import { roomHosts, roomStates, roomExists } from "../services/roomService.js";
 import type { Song } from "../services/roomService.js";
+import { startRoomPlaybackTimer } from "../services/playbackService.js";
 
 function isValidSong(song: unknown): song is Song {
   if (!song || typeof song !== "object") return false;
@@ -14,6 +15,15 @@ function isValidSong(song: unknown): song is Song {
   if (
     candidate.thumbnail !== undefined &&
     (typeof candidate.thumbnail !== "string" || !candidate.thumbnail.startsWith("https://"))
+  ) {
+    return false;
+  }
+
+  if (
+    candidate.duration !== undefined &&
+    (typeof candidate.duration !== "number" ||
+      !Number.isFinite(candidate.duration) ||
+      candidate.duration <= 0)
   ) {
     return false;
   }
@@ -40,6 +50,9 @@ export function registerSongHandlers(io: Server, socket: Socket) {
     roomState.currentSong = song;
     roomState.currentTime = 0;
     roomState.isPlaying = true;
+    roomState.startedAt = Date.now();
+
+    startRoomPlaybackTimer(io, roomId);
 
     io.to(roomId).emit("song-selected", {
       song,
