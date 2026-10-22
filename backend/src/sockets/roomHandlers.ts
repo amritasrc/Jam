@@ -7,7 +7,7 @@ import {
   createRoomState,
   roomExists,
 } from "../services/roomService.js";
-import { clearRoomPlaybackTimer } from "../services/playbackService.js";
+import { clearRoomPlaybackTimer, snapshotRoomState } from "../services/playbackService.js";
 
 export function registerRoomHandlers(io: Server, socket: Socket) {
   const leaveRoom = async (roomId: string) => {
@@ -71,14 +71,18 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
     const roomState = roomStates.get(roomId);
     const isHost = socket.id === hostId;
 
+    // A late joiner must land on the position the room is playing right now,
+    // not on the last value that happened to be broadcast.
+    const snapshot = roomState ? snapshotRoomState(roomState) : null;
+
     callback({
       success: true,
       message: "Joined room successfully",
       isHost,
-      roomState,
+      roomState: snapshot,
     });
 
-    socket.emit("playback-state", roomState);
+    socket.emit("playback-state", snapshot);
 
     io.to(roomId).emit("room-members", members.length);
     io.to(roomId).emit("room-host", hostId);
