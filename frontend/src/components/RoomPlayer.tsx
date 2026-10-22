@@ -2,10 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import YouTube, { type YouTubeEvent, type YouTubePlayer } from "react-youtube";
 import type { Options } from "youtube-player/dist/types";
 
-/** How far the video may drift from the room before it is fixed. */
+/** How far the audio may drift from the room before it is fixed. */
 const DRIFT_LIMIT_SECONDS = 1.2;
 
-/** How often the video is compared with the room position. */
+/** How often the player is compared with the room position. */
 const SYNC_INTERVAL_MS = 1000;
 
 /** Ticks without sound before the user is asked to tap the player. */
@@ -15,32 +15,31 @@ type RoomPlayerProps = {
   videoId: string | null;
   isPlaying: boolean;
   currentTime: number;
+  muted: boolean;
 };
 
 export default function RoomPlayer({
   videoId,
   isPlaying,
   currentTime,
+  muted,
 }: RoomPlayerProps) {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const roomRef = useRef({ isPlaying, currentTime });
-  const mutedRef = useRef(false);
+  const mutedRef = useRef(muted);
   const pausedTicksRef = useRef(0);
 
-  const [muted, setMuted] = useState(false);
   const [needsTap, setNeedsTap] = useState(false);
   const [failed, setFailed] = useState(false);
 
   const opts = useMemo<Options>(
     () => ({
-      width: "100%",
-      height: "100%",
+      width: "640",
+      height: "360",
       playerVars: {
         autoplay: 1,
         playsinline: 1,
-        controls: 1,
-        rel: 0,
-        modestbranding: 1,
+        controls: 0,
         origin: window.location.origin,
       },
     }),
@@ -105,7 +104,7 @@ export default function RoomPlayer({
     pausedTicksRef.current = 0;
   }, [videoId]);
 
-  // Mute or unmute the video.
+  // Mute or unmute the audio.
   useEffect(() => {
     const player = playerRef.current;
 
@@ -115,7 +114,7 @@ export default function RoomPlayer({
     else void player.unMute();
   }, [muted]);
 
-  // Keep the video on the room position and catch a blocked autoplay.
+  // Keep the audio on the room position and catch a blocked autoplay.
   useEffect(() => {
     if (!videoId) return;
 
@@ -182,18 +181,6 @@ export default function RoomPlayer({
     return () => window.clearInterval(id);
   }, [play, videoId]);
 
-  const handleToggleMute = () => {
-    const player = playerRef.current;
-    const nextMuted = !muted;
-
-    setMuted(nextMuted);
-
-    if (!player) return;
-
-    if (nextMuted) void player.mute();
-    else void player.unMute();
-  };
-
   const handleTapToPlay = () => {
     const player = playerRef.current;
 
@@ -206,44 +193,38 @@ export default function RoomPlayer({
   if (!videoId) return null;
 
   return (
-    <div className="relative mb-5 aspect-video w-full overflow-hidden rounded-2xl bg-slate-900 shadow-inner">
-      <YouTube
-        key={videoId}
-        videoId={videoId}
-        onReady={handleReady}
-        onError={handleError}
-        opts={opts}
-        className="h-full w-full"
-        iframeClassName="h-full w-full"
-      />
-
-      <button
-        type="button"
-        onClick={handleToggleMute}
-        aria-label={muted ? "Turn sound on" : "Turn sound off"}
-        className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition hover:bg-black/80"
+    <>
+      {/* The player stays off screen, only the audio is heard. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed left-[-9999px] top-0 h-[360px] w-[640px]"
       >
-        {muted ? "Sound off" : "Sound on"}
-      </button>
+        <YouTube
+          key={videoId}
+          videoId={videoId}
+          onReady={handleReady}
+          onError={handleError}
+          opts={opts}
+          className="h-full w-full"
+          iframeClassName="h-full w-full"
+        />
+      </div>
 
       {failed ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-900/90 p-4 text-center text-sm text-white">
-          This video cannot be played here.
-        </div>
+        <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          This track cannot be played here.
+        </p>
       ) : (
         needsTap && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <button
-              type="button"
-              onClick={handleTapToPlay}
-              className="pointer-events-auto flex flex-col items-center gap-1 rounded-2xl bg-black/70 px-5 py-3 text-sm font-semibold text-white backdrop-blur transition hover:bg-black/85"
-            >
-              <span className="text-xl">🔊</span>
-              Tap to play with sound
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleTapToPlay}
+            className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-100"
+          >
+            🔊 Tap to play with sound
+          </button>
         )
       )}
-    </div>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import RoomPlayer from "./RoomPlayer";
 import { formatDuration, formatTime } from "../lib/format";
 
@@ -54,6 +55,8 @@ export default function NowPlaying({
   isHost,
   onToggle,
 }: NowPlayingProps) {
+  const [muted, setMuted] = useState(false);
+
   const hasTrack = Boolean(title);
   const totalTime = duration != null && duration > 0 ? duration : null;
   const elapsed = Math.max(0, totalTime ? Math.min(currentTime, totalTime) : currentTime);
@@ -109,10 +112,10 @@ export default function NowPlaying({
           <img
             src={thumbnail}
             alt={title ?? "Current track"}
-            className="h-16 w-16 shrink-0 rounded-2xl object-cover shadow-md"
+            className="h-20 w-20 shrink-0 rounded-2xl object-cover shadow-md"
           />
         ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-fuchsia-200 to-indigo-200 text-2xl">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-fuchsia-200 to-indigo-200 text-2xl">
             ♫
           </div>
         )}
@@ -122,6 +125,7 @@ export default function NowPlaying({
         videoId={videoId}
         isPlaying={isPlaying}
         currentTime={currentTime}
+        muted={muted}
       />
 
       <div
@@ -174,9 +178,22 @@ export default function NowPlaying({
           {meta.action}
         </button>
 
-        {!isHost ? (
-          <p className="text-xs text-slate-400">Only the host can control playback.</p>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {!isHost ? (
+            <p className="text-xs text-slate-400">Only the host can control playback.</p>
+          ) : null}
+
+          {hasTrack ? (
+            <button
+              type="button"
+              onClick={() => setMuted((prev) => !prev)}
+              aria-label={muted ? "Turn sound on" : "Turn sound off"}
+              className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:bg-slate-200"
+            >
+              {muted ? "Sound off" : "Sound on"}
+            </button>
+          ) : null}
+        </div>
       </div>
     </section>
   );
