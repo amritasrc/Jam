@@ -90,22 +90,6 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
     console.log(`${socket.id} joined room: ${roomId}`);
   });
 
-  socket.on("room-message", ({ roomId, message }) => {
-    if (!roomExists(roomId)) {
-      console.log(`Message rejected: room ${roomId} not found`);
-      return;
-    }
-
-    if (socket.data.currentRoom !== roomId) {
-      console.log("Message rejected: sender is not in this room");
-      return;
-    }
-
-    io.to(roomId).emit("room-message", message);
-
-    console.log(`Message sent to room ${roomId}: ${message}`);
-  });
-
   socket.on("create-room", async (callback) => {
     if (socket.data.currentRoom) {
       await leaveRoom(socket.data.currentRoom);

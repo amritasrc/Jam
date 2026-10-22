@@ -3,7 +3,6 @@ import JoinRoom from "./components/JoinRoom";
 import RoomInfo from "./components/RoomInfo";
 import NowPlaying from "./components/NowPlaying";
 import TrackLibrary from "./components/TrackLibrary";
-import ChatPanel from "./components/ChatPanel";
 import { useJamSocket } from "./hooks/useJamSocket";
 
 function App() {
@@ -58,38 +57,30 @@ function App() {
             </ul>
           </div>
         ) : (
-          <>
-            <div className="grid gap-4 lg:grid-cols-3">
-              <div className="space-y-4 lg:col-span-2">
-                <RoomInfo roomId={jam.roomId} members={jam.members} />
-                <NowPlaying
-                  title={jam.roomState.currentSong?.title ?? null}
-                  videoId={jam.roomState.currentSong?.videoId ?? null}
-                  thumbnail={jam.roomState.currentSong?.thumbnail ?? null}
-                  isPlaying={jam.roomState.isPlaying}
-                  currentTime={jam.roomState.currentTime}
-                  isHost={jam.isHost}
-                  onToggle={jam.togglePlayback}
-                  duration={jam.roomState.currentSong?.duration ?? null}
-                />
+          <div className="mx-auto w-full max-w-3xl space-y-4">
+            <RoomInfo roomId={jam.roomId} members={jam.members} />
+            <NowPlaying
+              title={jam.roomState.currentSong?.title ?? null}
+              videoId={jam.roomState.currentSong?.videoId ?? null}
+              thumbnail={jam.roomState.currentSong?.thumbnail ?? null}
+              isPlaying={jam.roomState.isPlaying}
+              currentTime={jam.roomState.currentTime}
+              isHost={jam.isHost}
+              onToggle={jam.togglePlayback}
+              duration={jam.roomState.currentSong?.duration ?? null}
+            />
 
-                {jam.message && (
-                  <p className="text-sm text-indigo-500">{jam.message}</p>
-                )}
+            {jam.message && (
+              <p className="text-sm text-indigo-500">{jam.message}</p>
+            )}
 
-                <TrackLibrary
-                  isHost={jam.isHost}
-                  currentSong={jam.roomState.currentSong}
-                  onSelect={jam.selectSong}
-                />
-              </div>
+            <TrackLibrary
+              isHost={jam.isHost}
+              currentSong={jam.roomState.currentSong}
+              onSelect={jam.selectSong}
+            />
 
-              <div className="lg:row-span-2">
-                <ChatPanel messages={jam.messages} onSend={jam.sendMessage} />
-              </div>
-            </div>
-
-            <div className="mt-6 flex justify-center">
+            <div className="flex justify-center pt-2">
               <button
                 type="button"
                 onClick={jam.leaveRoom}
@@ -98,7 +89,7 @@ function App() {
                 Leave room
               </button>
             </div>
-          </>
+          </div>
         )}
       </main>
     </div>

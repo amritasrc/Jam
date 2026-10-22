@@ -26,7 +26,6 @@ export function useJamSocket() {
     isPlaying: false,
     currentTime: 0,
   });
-  const [messages, setMessages] = useState<string[]>([]);
 
   // The last position the server confirmed, plus the moment it arrived, so
   // the elapsed time can be interpolated locally between updates.
@@ -73,10 +72,6 @@ export function useJamSocket() {
       applyPlayback(payload);
     };
 
-    const handleRoomMessage = (msg: string) => {
-      setMessages((prev) => [...prev, msg]);
-    };
-
     const handleSongSelected = (payload: {
       song: Song;
       isPlaying: boolean;
@@ -91,7 +86,6 @@ export function useJamSocket() {
     socket.on("room-host", handleRoomHost);
     socket.on("playback-state", handlePlaybackState);
     socket.on("playback-update", handlePlaybackUpdate);
-    socket.on("room-message", handleRoomMessage);
     socket.on("song-selected", handleSongSelected);
 
     return () => {
@@ -100,7 +94,6 @@ export function useJamSocket() {
       socket.off("room-host", handleRoomHost);
       socket.off("playback-state", handlePlaybackState);
       socket.off("playback-update", handlePlaybackUpdate);
-      socket.off("room-message", handleRoomMessage);
       socket.off("song-selected", handleSongSelected);
     };
   }, [applyPlayback]);
@@ -139,7 +132,6 @@ export function useJamSocket() {
         currentTime: 0,
       });
       resetPlayback();
-      setMessages([]);
     });
   };
 
@@ -169,18 +161,9 @@ export function useJamSocket() {
             setRoomState(response.roomState);
             applyPlayback(response.roomState);
           }
-          setMessages([]);
         }
       }
     );
-  };
-
-  const sendMessage = (text: string) => {
-    const trimmed = text.trim();
-
-    if (!roomId || !trimmed) return;
-
-    socket.emit("room-message", { roomId, message: trimmed });
   };
 
   const togglePlayback = () => {
@@ -213,7 +196,6 @@ export function useJamSocket() {
       currentTime: 0,
     });
     resetPlayback();
-    setMessages([]);
   };
 
   return {
@@ -222,10 +204,8 @@ export function useJamSocket() {
     members,
     isHost,
     roomState,
-    messages,
     createRoom,
     joinRoom,
-    sendMessage,
     togglePlayback,
     selectSong,
     leaveRoom,
