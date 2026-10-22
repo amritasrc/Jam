@@ -7,6 +7,7 @@ import {
   createRoomState,
   roomExists,
 } from "../services/roomService.js";
+import { clearRoomPlaybackTimer } from "./playbackHandlers.js";
 
 export function registerRoomHandlers(io: Server, socket: Socket) {
   const leaveRoom = async (roomId: string) => {
@@ -19,6 +20,9 @@ export function registerRoomHandlers(io: Server, socket: Socket) {
     io.to(roomId).emit("room-members", members.length);
 
     if (members.length === 0) {
+
+      clearRoomPlaybackTimer(roomId);
+
       rooms.delete(roomId);
       roomHosts.delete(roomId);
       roomStates.delete(roomId);
