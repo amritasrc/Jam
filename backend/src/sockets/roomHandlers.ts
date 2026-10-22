@@ -7,7 +7,7 @@ import {
   createRoomState,
   roomExists,
 } from "../services/roomService.js";
-import { clearRoomPlaybackTimer } from "./playbackHandlers.js";
+import { clearRoomPlaybackTimer } from "../services/playbackService.js";
 
 export function registerRoomHandlers(io: Server, socket: Socket) {
   const leaveRoom = async (roomId: string) => {

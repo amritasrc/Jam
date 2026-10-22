@@ -1,71 +1,33 @@
 import type { Server, Socket } from "socket.io";
 import { roomHosts, roomStates, roomExists } from "../services/roomService.js";
-
-const playbackTimers = new Map<string, ReturnType<typeof setInterval>>();
-
-export function clearRoomPlaybackTimer(roomId: string) {
-  const timer = playbackTimers.get(roomId);
-
-  if (timer) {
-    clearInterval(timer);
-    playbackTimers.delete(roomId);
-  }
-}
+import {
+  clearRoomPlaybackTimer,
+  pausePlayback,
+  startPlayback,
+  startRoomPlaybackTimer,
+} from "../services/playbackService.js";
 
 export function registerPlaybackHandlers(io: Server, socket: Socket) {
-  socket.on("playback-update", ({ roomId, isPlaying, currentTime }) => {
+  socket.on("playback-update", ({ roomId, isPlaying }) => {
     if (!roomExists(roomId)) return;
     if (socket.data.currentRoom !== roomId) return;
 
     const hostId = roomHosts.get(roomId);
     if (socket.id !== hostId) return;
 
-    if (
-      typeof isPlaying !== "boolean" ||
-      typeof currentTime !== "number" ||
-      !Number.isFinite(currentTime) ||
-      currentTime < 0
-    ) {
-      return;
-    }
+    if (typeof isPlaying !== "boolean") return;
 
     const roomState = roomStates.get(roomId);
     if (!roomState) return;
 
-    roomState.isPlaying = isPlaying;
-    roomState.currentTime = currentTime;
-
-    clearRoomPlaybackTimer(roomId);
+    if (!roomState.currentSong) return;
 
     if (isPlaying) {
-      const timer = setInterval(() => {
-        const state = roomStates.get(roomId);
-
-        if (!state || !state.isPlaying || !roomExists(roomId)) {
-          clearInterval(timer);
-          playbackTimers.delete(roomId);
-          return;
-        }
-
-        state.currentTime += 1;
-
-        if (
-          state.currentSong?.duration &&
-          state.currentTime >= state.currentSong.duration
-        ) {
-          state.currentTime = state.currentSong.duration;
-          state.isPlaying = false;
-          clearInterval(timer);
-          playbackTimers.delete(roomId);
-        }
-
-        io.to(roomId).emit("playback-update", {
-          isPlaying: state.isPlaying,
-          currentTime: state.currentTime,
-        });
-      }, 1000);
-
-      playbackTimers.set(roomId, timer);
+      startPlayback(roomState);
+      startRoomPlaybackTimer(io, roomId);
+    } else {
+      pausePlayback(roomState);
+      clearRoomPlaybackTimer(roomId);
     }
 
     io.to(roomId).emit("playback-update", {
