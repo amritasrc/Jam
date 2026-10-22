@@ -1,7 +1,9 @@
+import RoomPlayer from "./RoomPlayer";
 import { formatDuration, formatTime } from "../lib/format";
 
 type NowPlayingProps = {
   title: string | null;
+  videoId: string | null;
   thumbnail: string | null;
   duration: number | null;
   isPlaying: boolean;
@@ -44,6 +46,7 @@ const STATUS_META: Record<
 
 export default function NowPlaying({
   title,
+  videoId,
   thumbnail,
   duration,
   isPlaying,
@@ -114,6 +117,12 @@ export default function NowPlaying({
           </div>
         )}
       </div>
+
+      <RoomPlayer
+        videoId={videoId}
+        isPlaying={isPlaying}
+        currentTime={currentTime}
+      />
 
       <div
         role="progressbar"
