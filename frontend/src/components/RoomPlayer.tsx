@@ -30,6 +30,7 @@ export default function RoomPlayer({
   const pausedTicksRef = useRef(0);
 
   const [needsTap, setNeedsTap] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
   const opts = useMemo<Options>(
@@ -71,6 +72,8 @@ export default function RoomPlayer({
       const player = event.target;
 
       playerRef.current = player;
+      setLoading(false);
+      setFailed(false);
 
       void player.setVolume(100);
 
@@ -85,6 +88,7 @@ export default function RoomPlayer({
   );
 
   const handleError = useCallback(() => {
+    setLoading(false);
     setFailed(true);
   }, []);
 
@@ -98,10 +102,13 @@ export default function RoomPlayer({
     else void player.pauseVideo();
   }, [isPlaying, play]);
 
-  // The old player is dropped when the track changes.
+  // Reset player state when the track changes.
   useEffect(() => {
     playerRef.current = null;
     pausedTicksRef.current = 0;
+    setLoading(Boolean(videoId));
+    setFailed(false);
+    setNeedsTap(false);
   }, [videoId]);
 
   // Mute or unmute the audio.
@@ -253,6 +260,10 @@ export default function RoomPlayer({
       {failed ? (
         <p className="mb-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600">
           This track cannot be played here.
+        </p>
+      ) : loading ? (
+        <p className="mb-4 rounded-2xl bg-indigo-50 px-4 py-3 text-sm text-indigo-600">
+          Loading track...
         </p>
       ) : (
         needsTap && (
