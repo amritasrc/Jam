@@ -208,14 +208,14 @@ export default function RoomPlayer({
       if (!player || !room.isPlaying) return;
 
       try {
-        const playerTime = await player.getCurrentTime();
-        const drift = Math.abs(playerTime - room.currentTime);
+        const playerState = await player.getPlayerState();
 
-        if (drift > DRIFT_LIMIT_SECONDS) {
-          await player.seekTo(room.currentTime, true);
+        if (
+          playerState !== YouTube.PlayerState.PLAYING &&
+          playerState !== YouTube.PlayerState.BUFFERING
+        ) {
+          await player.playVideo();
         }
-
-        await player.playVideo();
 
         if (mutedRef.current) {
           await player.mute();
@@ -223,10 +223,10 @@ export default function RoomPlayer({
           await player.unMute();
         }
 
-        setNeedsTap(false);
         pausedTicksRef.current = 0;
+        setNeedsTap(false);
       } catch {
-        // The regular sync check will retry if playback is still unavailable.
+        // Playback recovery will be retried by the regular sync check.
       }
     };
 
