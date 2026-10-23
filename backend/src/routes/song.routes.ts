@@ -27,6 +27,24 @@ function parseDuration(duration: string): number {
 
 const router = Router();
 
+router.get("/autoplay", async (req, res) => {
+  const query = req.query.q;
+
+  if (typeof query !== "string" || !query.trim()) {
+    res.status(400).json({
+      success: false,
+      message: "Please provide a song query.",
+    });
+    return;
+  }
+
+  // We'll add the YouTube API request in the next step.
+  res.json({
+    success: true,
+    songs: [],
+  });
+});
+
 router.get("/search", async (req, res) => {
   const query = req.query.q;
 

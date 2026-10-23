@@ -9,10 +9,9 @@ export type Song = {
 export type RoomState = {
   currentSong: Song | null;
   isPlaying: boolean;
-  /** Position captured at `startedAt`, in seconds. */
   currentTime: number;
-  /** Epoch ms when `currentTime` was captured, null while paused. */
   startedAt: number | null;
+  autoplayCandidates: Song[];
 };
 
 export const rooms = new Set<string>();
@@ -27,6 +26,7 @@ export function createRoomState(): RoomState {
     isPlaying: false,
     currentTime: 0,
     startedAt: null,
+    autoplayCandidates: [],
   };
 }
 
