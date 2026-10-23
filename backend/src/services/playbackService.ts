@@ -1,16 +1,13 @@
+import axios from "axios";
 import type { Server } from "socket.io";
 import { roomExists, roomStates } from "./roomService.js";
-import type { RoomState } from "./roomService.js";
+import type { RoomState, Song } from "./roomService.js";
 
 const TICK_INTERVAL_MS = 1000;
 
 const playbackTimers = new Map<string, ReturnType<typeof setInterval>>();
+const advancingRooms = new Set<string>();
 
-/**
- * The room state keeps `currentTime` as the position that was captured at
- * `startedAt`. While a track is playing the live position is derived from the
- * wall clock so slow ticks or blocked event loops never make the room drift.
- */
 export function getLivePosition(state: RoomState, now = Date.now()): number {
   if (!state.isPlaying || state.startedAt === null) {
     return state.currentTime;
@@ -19,7 +16,6 @@ export function getLivePosition(state: RoomState, now = Date.now()): number {
   return state.currentTime + Math.max(0, (now - state.startedAt) / 1000);
 }
 
-/** Folds the elapsed time into `currentTime` and re-anchors the clock. */
 export function syncStateToNow(state: RoomState, now = Date.now()): void {
   if (!state.isPlaying || state.startedAt === null) return;
 
@@ -27,7 +23,6 @@ export function syncStateToNow(state: RoomState, now = Date.now()): void {
   state.startedAt = now;
 }
 
-/** Starts playback from the authoritative position, keeping it untouched. */
 export function startPlayback(state: RoomState): void {
   syncStateToNow(state);
 
@@ -41,15 +36,12 @@ export function startPlayback(state: RoomState): void {
   state.startedAt = Date.now();
 }
 
-/** Pauses playback, freezing the position where it actually was. */
 export function pausePlayback(state: RoomState): void {
   syncStateToNow(state);
-
   state.isPlaying = false;
   state.startedAt = null;
 }
 
-/** A client facing snapshot of the room state with a fresh position. */
 export function snapshotRoomState(state: RoomState) {
   return {
     currentSong: state.currentSong,
@@ -67,10 +59,77 @@ export function clearRoomPlaybackTimer(roomId: string): void {
   playbackTimers.delete(roomId);
 }
 
-/**
- * Starts the single playback timer for a room. Any previous timer is cleared
- * first so repeated play events can never run two timers for the same room.
- */
+async function playRandomNextSong(io: Server, roomId: string): Promise<void> {
+  if (advancingRooms.has(roomId)) return;
+
+  const state = roomStates.get(roomId);
+  const currentSong = state?.currentSong;
+
+  if (!state || !currentSong || !roomExists(roomId)) return;
+
+  advancingRooms.add(roomId);
+
+  try {
+    const query = `${currentSong.title} ${currentSong.channelTitle}`;
+
+    const response = await axios.get(
+      `${process.env.API_BASE_URL ?? "http://localhost:3000"}/api/songs/autoplay`,
+      {
+        params: {
+          q: query,
+          exclude: currentSong.videoId,
+        },
+        timeout: 10000,
+      }
+    );
+
+    const nextSong = response.data?.song as Song | null | undefined;
+
+    const latestState = roomStates.get(roomId);
+
+    if (!latestState || !roomExists(roomId)) return;
+
+    if (!nextSong?.videoId || nextSong.videoId === currentSong.videoId) {
+      latestState.isPlaying = false;
+      latestState.startedAt = null;
+      clearRoomPlaybackTimer(roomId);
+
+      io.to(roomId).emit("playback-update", {
+        isPlaying: false,
+        currentTime: latestState.currentTime,
+      });
+      return;
+    }
+
+    latestState.currentSong = nextSong;
+    latestState.currentTime = 0;
+    latestState.isPlaying = true;
+    latestState.startedAt = Date.now();
+
+    io.to(roomId).emit("song-selected", {
+      song: nextSong,
+      isPlaying: true,
+      currentTime: 0,
+    });
+  } catch (error) {
+    console.error("Autoplay failed:", error);
+
+    const latestState = roomStates.get(roomId);
+
+    if (latestState && roomExists(roomId)) {
+      latestState.isPlaying = false;
+      latestState.startedAt = null;
+
+      io.to(roomId).emit("playback-update", {
+        isPlaying: false,
+        currentTime: latestState.currentTime,
+      });
+    }
+  } finally {
+    advancingRooms.delete(roomId);
+  }
+}
+
 export function startRoomPlaybackTimer(io: Server, roomId: string): void {
   clearRoomPlaybackTimer(roomId);
 
@@ -92,10 +151,7 @@ export function startRoomPlaybackTimer(io: Server, roomId: string): void {
       state.startedAt = null;
       clearRoomPlaybackTimer(roomId);
 
-      io.to(roomId).emit("playback-update", {
-        isPlaying: false,
-        currentTime: duration,
-      });
+      void playRandomNextSong(io, roomId);
       return;
     }
 
