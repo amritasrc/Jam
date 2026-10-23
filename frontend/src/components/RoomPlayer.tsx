@@ -190,6 +190,46 @@ export default function RoomPlayer({
     void player.playVideo();
   };
 
+  // Recover playback when the user returns to this tab.
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== "visible") return;
+
+      const player = playerRef.current;
+      const room = roomRef.current;
+
+      if (!player || !room.isPlaying) return;
+
+      try {
+        const playerTime = await player.getCurrentTime();
+        const drift = Math.abs(playerTime - room.currentTime);
+
+        if (drift > DRIFT_LIMIT_SECONDS) {
+          await player.seekTo(room.currentTime, true);
+        }
+
+        await player.playVideo();
+
+        if (mutedRef.current) {
+          await player.mute();
+        } else {
+          await player.unMute();
+        }
+
+        setNeedsTap(false);
+        pausedTicksRef.current = 0;
+      } catch {
+        // The regular sync check will retry if playback is still unavailable.
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   if (!videoId) return null;
 
   return (
@@ -197,7 +237,7 @@ export default function RoomPlayer({
       {/* The player stays off screen, only the audio is heard. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed left-[-9999px] top-0 h-[360px] w-[640px]"
+        className="pointer-events-none fixed left-[-9999px] top-0 h-90 w-160"
       >
         <YouTube
           key={videoId}
