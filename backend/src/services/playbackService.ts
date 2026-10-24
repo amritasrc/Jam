@@ -111,6 +111,7 @@ async function playRandomNextSong(io: Server, roomId: string): Promise<void> {
       isPlaying: true,
       currentTime: 0,
     });
+    startRoomPlaybackTimer(io, roomId);
   } catch (error) {
     console.error("Autoplay failed:", error);
 
