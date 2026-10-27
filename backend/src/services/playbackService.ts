@@ -59,6 +59,30 @@ export function clearRoomPlaybackTimer(roomId: string): void {
   playbackTimers.delete(roomId);
 }
 
+function buildAutoplayQuery(currentSong: Song): string {
+  // Try to generate more varied, relevant queries instead of just title+channel
+  const queries = [
+    currentSong.title,
+    currentSong.channelTitle,
+    // Mix them differently for variety
+    `${currentSong.title.split(/[\(\)\[\]\-\/]/)[0].trim()}`,
+  ].filter((q) => q && q.trim().length > 0);
+  
+  // Pick a varied query - sometimes just artist/channel, sometimes just title part
+  if (queries.length === 0) {
+    return currentSong.title || currentSong.channelTitle || "";
+  }
+  // Randomly choose between strategies for more variety like YouTube
+  const strategies = [
+    `${currentSong.title} ${currentSong.channelTitle}`,
+    currentSong.channelTitle, // More from same artist/channel
+    currentSong.title.split(/[\(\)\[\]\-\/]/)[0].trim(), // Just main part of title
+  ].filter((q) => q && q.trim().length > 0);
+  
+  const selectedQuery = strategies[Math.floor(Math.random() * strategies.length)];
+  return selectedQuery;
+}
+
 async function playRandomNextSong(io: Server, roomId: string): Promise<void> {
   if (advancingRooms.has(roomId)) return;
 
@@ -70,7 +94,24 @@ async function playRandomNextSong(io: Server, roomId: string): Promise<void> {
   advancingRooms.add(roomId);
 
   try {
-    const query = `${currentSong.title} ${currentSong.channelTitle}`;
+    // Add current song to recently played before advancing
+    if (!state.recentlyPlayed) {
+      state.recentlyPlayed = [];
+    }
+    // Avoid duplicates in recently played
+    state.recentlyPlayed = state.recentlyPlayed.filter(
+      (s) => s.videoId !== currentSong.videoId
+    );
+    state.recentlyPlayed.unshift(currentSong);
+    // Keep only last 20 songs to avoid growing unbounded
+    if (state.recentlyPlayed.length > 20) {
+      state.recentlyPlayed = state.recentlyPlayed.slice(0, 20);
+    }
+
+    const query = buildAutoplayQuery(currentSong);
+    const recentlyPlayedIds = (state.recentlyPlayed || [])
+      .map((s) => s.videoId)
+      .join(",");
 
     const response = await axios.get(
       `${process.env.API_BASE_URL ?? "http://localhost:3000"}/api/songs/autoplay`,
@@ -78,6 +119,7 @@ async function playRandomNextSong(io: Server, roomId: string): Promise<void> {
         params: {
           q: query,
           exclude: currentSong.videoId,
+          recentlyPlayed: recentlyPlayedIds,
         },
         timeout: 10000,
       }
@@ -90,6 +132,19 @@ async function playRandomNextSong(io: Server, roomId: string): Promise<void> {
     if (!latestState || !roomExists(roomId)) return;
 
     if (!nextSong?.videoId || nextSong.videoId === currentSong.videoId) {
+      latestState.isPlaying = false;
+      latestState.startedAt = null;
+      clearRoomPlaybackTimer(roomId);
+
+      io.to(roomId).emit("playback-update", {
+        isPlaying: false,
+        currentTime: latestState.currentTime,
+      });
+      return;
+    }
+
+    // Validate song has required fields
+    if (!nextSong.title || !nextSong.videoId) {
       latestState.isPlaying = false;
       latestState.startedAt = null;
       clearRoomPlaybackTimer(roomId);

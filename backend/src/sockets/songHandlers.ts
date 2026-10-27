@@ -47,6 +47,20 @@ export function registerSongHandlers(io: Server, socket: Socket) {
 
     if (!roomState) return;
 
+    // Track recently played for better autoplay recommendations
+    if (!roomState.recentlyPlayed) {
+      roomState.recentlyPlayed = [];
+    }
+    if (roomState.currentSong) {
+      roomState.recentlyPlayed = roomState.recentlyPlayed.filter(
+        (s) => s.videoId !== roomState.currentSong?.videoId
+      );
+      roomState.recentlyPlayed.unshift(roomState.currentSong);
+      if (roomState.recentlyPlayed.length > 20) {
+        roomState.recentlyPlayed = roomState.recentlyPlayed.slice(0, 20);
+      }
+    }
+
     roomState.currentSong = song;
     roomState.currentTime = 0;
     roomState.isPlaying = true;

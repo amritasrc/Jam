@@ -12,6 +12,7 @@ export type RoomState = {
   currentTime: number;
   startedAt: number | null;
   autoplayCandidates: Song[];
+  recentlyPlayed: Song[];
 };
 
 export const rooms = new Set<string>();
@@ -27,6 +28,7 @@ export function createRoomState(): RoomState {
     currentTime: 0,
     startedAt: null,
     autoplayCandidates: [],
+    recentlyPlayed: [],
   };
 }
 

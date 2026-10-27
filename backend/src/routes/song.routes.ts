@@ -30,14 +30,7 @@ const router = Router();
 router.get("/autoplay", async (req, res) => {
   const query = req.query.q;
   const exclude = req.query.exclude;
-
-  if (typeof query !== "string" || !query.trim()) {
-    res.status(400).json({
-      success: false,
-      message: "Please provide a song query.",
-    });
-    return;
-  }
+  const recentlyPlayed = req.query.recentlyPlayed;
 
   const apiKey = process.env.YOUTUBE_API_KEY;
 
@@ -49,45 +42,89 @@ router.get("/autoplay", async (req, res) => {
     return;
   }
 
+  // Build exclusion set
+  const excludedIds = new Set<string>();
+  if (typeof exclude === "string" && exclude.trim()) {
+    excludedIds.add(exclude.trim());
+  }
+  if (typeof recentlyPlayed === "string" && recentlyPlayed.trim()) {
+    recentlyPlayed
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean)
+      .forEach((id) => excludedIds.add(id));
+  }
+
+  // Generate varied candidate queries for better recommendations
+  const candidateQueries: string[] = [];
+  if (typeof query === "string" && query.trim()) {
+    const trimmed = query.trim();
+    candidateQueries.push(`${trimmed} music`);
+    candidateQueries.push(`${trimmed} official video`);
+    // Try to be more varied - just the query without forcing "music" at end
+    candidateQueries.push(trimmed);
+  }
+  // Fallback query
+  if (candidateQueries.length === 0) {
+    candidateQueries.push("popular music");
+  }
+
+  // Deduplicate queries
+  const uniqueQueries = Array.from(new Set(candidateQueries));
+
   try {
-    const response = await axios.get(
-      "https://www.googleapis.com/youtube/v3/search",
-      {
-        params: {
-          part: "snippet",
-          q: `${query.trim()} music`,
-          type: "video",
-          videoCategoryId: "10",
-          maxResults: 10,
-          key: apiKey,
-        },
+    const allCandidates: Song[] = [];
+    const seenVideoIds = new Set<string>();
+
+    // Try multiple query strategies to get more varied results
+    for (const q of uniqueQueries) {
+      try {
+        const response = await axios.get(
+          "https://www.googleapis.com/youtube/v3/search",
+          {
+            params: {
+              part: "snippet",
+              q: q,
+              type: "video",
+              videoCategoryId: "10",
+              maxResults: 10,
+              key: apiKey,
+            },
+          }
+        );
+
+        const items = (response.data.items ?? []) as YouTubeSearchItem[];
+
+        for (const item of items) {
+          if (
+            !item.id?.videoId ||
+            excludedIds.has(item.id.videoId) ||
+            seenVideoIds.has(item.id.videoId)
+          ) {
+            continue;
+          }
+          seenVideoIds.add(item.id.videoId);
+          allCandidates.push({
+            videoId: item.id.videoId,
+            title: item.snippet?.title ?? "Unknown track",
+            channelTitle: item.snippet?.channelTitle ?? "",
+            thumbnail: item.snippet?.thumbnails?.medium?.url,
+          });
+        }
+      } catch (err) {
+        // Continue trying other queries if one fails
+        continue;
       }
-    );
+    }
 
-    const items = (response.data.items ?? []) as YouTubeSearchItem[];
-
-    const candidates: Song[] = items
-      .filter(
-        (item): item is YouTubeSearchItem & {
-          id: { videoId: string };
-        } =>
-          Boolean(item.id?.videoId) &&
-          item.id?.videoId !== (typeof exclude === "string" ? exclude : "")
-      )
-      .map((item) => ({
-        videoId: item.id.videoId,
-        title: item.snippet?.title ?? "Unknown track",
-        channelTitle: item.snippet?.channelTitle ?? "",
-        thumbnail: item.snippet?.thumbnails?.medium?.url,
-      }));
-
-    if (candidates.length === 0) {
+    if (allCandidates.length === 0) {
       res.json({ success: true, song: null });
       return;
     }
 
-    const randomIndex = Math.floor(Math.random() * candidates.length);
-    const selectedSong = candidates[randomIndex];
+    // Randomly select from multiple valid candidates for variety
+    const randomIndex = Math.floor(Math.random() * allCandidates.length);
+    const selectedSong = allCandidates[randomIndex];
 
     const durationResponse = await axios.get(
       "https://www.googleapis.com/youtube/v3/videos",
