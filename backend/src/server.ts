@@ -24,8 +24,6 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
-
   socket.data.currentRoom = null as string | null;
 
   registerRoomHandlers(io, socket);

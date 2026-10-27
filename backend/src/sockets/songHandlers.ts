@@ -73,7 +73,5 @@ export function registerSongHandlers(io: Server, socket: Socket) {
       isPlaying: roomState.isPlaying,
       currentTime: roomState.currentTime,
     });
-
-    console.log(`Song selected in room ${roomId}: ${song.title}`);
   });
 }

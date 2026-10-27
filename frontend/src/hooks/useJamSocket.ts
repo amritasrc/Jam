@@ -49,10 +49,6 @@ export function useJamSocket() {
   }, []);
 
   useEffect(() => {
-    const handleConnect = () => {
-      console.log("Connected:", socket.id);
-    };
-
     const handleRoomMembers = (count: number) => {
       setMembers(count);
     };
@@ -81,7 +77,6 @@ export function useJamSocket() {
       applyPlayback(payload);
     };
 
-    socket.on("connect", handleConnect);
     socket.on("room-members", handleRoomMembers);
     socket.on("room-host", handleRoomHost);
     socket.on("playback-state", handlePlaybackState);
@@ -89,7 +84,6 @@ export function useJamSocket() {
     socket.on("song-selected", handleSongSelected);
 
     return () => {
-      socket.off("connect", handleConnect);
       socket.off("room-members", handleRoomMembers);
       socket.off("room-host", handleRoomHost);
       socket.off("playback-state", handlePlaybackState);
